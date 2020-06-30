@@ -1,0 +1,9 @@
+{
+    "require": {
+        "robmorgan/phinx": "^0.12.2",
+        "mervick/curl-helper": "^2.2"
+    },
+    "autoload": {
+        "psr-4": {"app\\": "."}
+    }
+}

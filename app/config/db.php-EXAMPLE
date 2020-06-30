@@ -1,0 +1,11 @@
+<?php
+
+// настройки для соединения с БД MySQL
+return [
+  'host'     => 'database', // docker container name
+  'port'     => 3306,
+  'user'     => 'dbuser1',
+  'password' => 'PhrejUj2',
+  'database' => 'testdb',
+  'charset'  => 'utf8',
+];

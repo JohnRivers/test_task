@@ -1,0 +1,29 @@
+version: "3"
+
+services:
+  php-fpm:
+    build: php-fpm/
+    container_name: test_task_php
+    volumes:
+      - ../app:/var/www
+    environment:
+      - TZ=${TZ}
+    working_dir: /var/www
+    user: www-data
+    links:
+      - database
+
+  database:
+    image: mysql:5.7
+    container_name: test_task_db
+    volumes:
+      - ../db:/var/lib/mysql
+      - ./mysql/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - TZ=${TZ}
+    ports:
+      - "10306:3306"

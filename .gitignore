@@ -1,0 +1,7 @@
+
+app/config/db.php
+app/log/*
+app/vendor/*
+db/*
+docker/.env
+!**/.gitkeep
