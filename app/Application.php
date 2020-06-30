@@ -3,7 +3,6 @@
 use app\components\Database;
 use app\domain\service\ProductService;
 use app\parser\Parser;
-use app\components\ExceptionHandler;
 
 // подключение автозагрузки классов по namespace (PSR-4)
 require_once('vendor/autoload.php');
@@ -13,7 +12,7 @@ class App {
   public static $parserConfig;
 
   public static function init() {
-    set_exception_handler('ExceptionHandler::handle');
+    set_exception_handler('app\\components\\ExceptionHandler::handle');
     self::$parserConfig = require('config/parser.php'); // сохранить отдельно настройки парсера для использования при обработке http ошибок
     self::$db = new Database(require('config/db.php'));
   }
@@ -26,7 +25,10 @@ class App {
     $parser = new Parser(self::$parserConfig);
     $products = $parser->run();
 
-    // print_r($products[0]);
+    foreach($products as $product) {
+      // сохранение товаров в БД, обновление существующих
+      ProductService::save($product);
+    }
 
     echo 'Application ended '.date('Y-m-d H:i:s').PHP_EOL;
     $end_time = microtime(true);

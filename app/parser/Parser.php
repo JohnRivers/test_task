@@ -4,9 +4,11 @@ namespace app\parser;
 
 use app\components\HttpException;
 use app\domain\model\ProductModel;
+use app\domain\model\PriceModel;
+use app\domain\model\PropertyModel;
 use Mervick\CurlHelper;
-use \DOMDocument;
-use \DOMXpath;
+use DOMDocument;
+use DOMXpath;
 
 class Parser {
   private $options;
@@ -51,11 +53,12 @@ class Parser {
   /**
    * Возвращает список товаров с одной страницы
    * @param  string $url - адрес страницы, которую парсим
-   * @return array
+   * @return array string
    */
   private function parseUrl($url) {
     echo 'Parsing url: '.$url.PHP_EOL;
 
+    // curl запрос указанной страницы
     $response = CurlHelper::factory($url)->exec();
 
     if($response['status'] != 200) {
@@ -68,7 +71,7 @@ class Parser {
 
     $xpath = new DOMXpath($dom);
     // получить все карточки товаров: <div class="card"> внутри тега <div class="listing__body-wrap">
-    $xpathNodes = $xpath->query('//div[contains(@class, "listing__body-wrap")]/div[contains(@class, "card")]');
+    $xpathNodes = $xpath->query('//div[contains(@class, "listing__body-wrap")]/div[contains(@class, "card js-card")]');
 
     $products = [];
     foreach($xpathNodes as $node) {
@@ -84,12 +87,56 @@ class Parser {
    */
   private function parseProduct($html) {
     $product = new ProductModel();
-    $xpath = new DOMXpath($html);
+    $dom = new DOMDocument();
+    // xml encoding="utf-8" - для корректной загрузки кодировки карточки товара
+    $dom->loadHTML('<?xml encoding="utf-8" ?>' . $html);
+    $xpath = new DOMXpath($dom);
 
-    //$product->name = $xpath->query('//a[@class=card__title]')->nodeValue;
+    // название товара
+    $product->name = trim($xpath->query('//a[@class="card__title"]')->item(0)->nodeValue);
+    // внутренний код Фокстрот
+    $product->code = $xpath->query('//div[contains(@class, "card")]')->item(0)->getAttribute('data-product-id');
+    // url картинки товара
+    $image = $xpath->query('//div[@class="card__image"]/*/img')->item(0);
+    if($image) {
+      $product->image = $image->getAttribute('data-src');
+    }
+    // рейтинг товара
+    $product->rating = $xpath->query('//div[@class="card__rating"]/*[contains(@class, "icon_orange")]')->length;
 
-    print_r($xpath->query('//a[@class=card__title]'));
+    // добавить цены на товар
+    $price = new PriceModel();
+    $price->price = $this->getNumberValue($xpath->query('//div[@class="card-price"]')->item(0)->textContent);
+    $price->priceOld = $this->getNumberValue($xpath->query('//div[@class="card__price-discount"]/p')->item(0)->textContent);
+    $price->priceCredit = $this->getNumberValue($xpath->query('//a[contains(@class, "card__price-trust")]')->item(0)->textContent);
+    $price->cashback = $this->getNumberValue($xpath->query('//div[@class="card__price-cashback"]')->item(0)->textContent);
+    $price->validDate = date('Y-m-d');
+    $product->addPrice($price);
+
+    // добавить характеристики товара
+    $xpathNodes = $xpath->query('//table[contains(@class, "prop-main")]/tr');
+    // print_r($xpathNodes);
+    foreach($xpathNodes as $xpathProperty) {
+      $property = new PropertyModel();
+      $propHtml = $dom->saveHtml($xpathProperty);
+      preg_match('@<td>([^:]+):</td>\s+<td>(.*)</td>@', $propHtml, $props);
+      if(isset($props[1]) && isset($props[2])) {
+        $property->name = $props[1];
+        $property->value = $props[2];
+        $product->addProperty($property);
+      }
+    }
 
     return $product;
+  }
+
+  /**
+   * Преобразует строку к числу, удаляя лишние пробелы и символы валюты
+   * @param  string
+   * @return int
+   */
+  private function getNumberValue($text):int {
+    $text = preg_replace('/[^0-9]/', '', $text);
+    return (int)$text;
   }
 }
