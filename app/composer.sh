@@ -1,3 +1,3 @@
 #!/bin/sh
 
-./docker-php.sh composer $@
+docker exec -ti test_task_php composer $@

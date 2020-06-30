@@ -7,11 +7,16 @@ cd docker
 docker-compose build
 docker-compose up -d
 
+# задержка для инициализации mysql docker контейнера
+sleep 5
+
+cd ../app
 echo 'Install project dependencies'
-../app/composer.sh install
+./composer.sh install
 
 echo 'Run DB migrations'
-../app/phinx migrate -e development
+./phinx.sh migrate -e development
 
 echo 'Stop docker'
+cd ../docker
 docker-compose down
