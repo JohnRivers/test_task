@@ -29,6 +29,7 @@ class App {
       // сохранение товаров в БД, обновление существующих
       ProductService::save($product);
     }
+    echo 'Saved '.count($products).' products'.PHP_EOL;
 
     echo 'Application ended '.date('Y-m-d H:i:s').PHP_EOL;
     $end_time = microtime(true);
