@@ -18,8 +18,8 @@ class HttpException extends Exception {
     parent::__construct($message, $code);
 
     // если указан email для уведомлений, отправить 503-ю ошибку на email
-    if($code == 503 && isset(App::$parserConfig['emailNotify'])) {
-      mail(App::$parserConfig['emailNotify'], 'Test task: Http error code 503', $message);
+    if($code == 503 && isset(App::$parserConfig['notify_email'])) {
+      mail(App::$parserConfig['notify_email'], 'Test task: Http error code '.$code, $message);
     }
   }
 }

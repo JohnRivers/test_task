@@ -35,11 +35,6 @@ class Parser {
     $productCards = [];
     foreach($this->options['parse_url'] as $url) {
       $productCards = array_merge($productCards, $this->parseUrl($url));
-
-      // делать паузы при загрузке данных с нескольких страниц чтобы нас не забанили
-      if(isset($this->options['cooldown'])) {
-        sleep($this->options['cooldown']);
-      }
     }
 
     $products = [];
@@ -58,11 +53,16 @@ class Parser {
   private function parseUrl($url) {
     echo 'Parsing url: '.$url.PHP_EOL;
 
+    // делать паузы при загрузке данных чтобы нас не забанили
+    if(isset($this->options['cooldown'])) {
+      sleep($this->options['cooldown']);
+    }
+
     // curl запрос указанной страницы
     $response = CurlHelper::factory($url)->exec();
 
     if($response['status'] != 200) {
-      throw new HttpException('HTTP error', $response['status']);
+      throw new HttpException('HTTP error '.$response['status'], $response['status']);
     }
 
     $dom = new DOMDocument();
@@ -76,6 +76,17 @@ class Parser {
     $products = [];
     foreach($xpathNodes as $node) {
       $products[] = $dom->saveHtml($node);
+    }
+
+    echo 'Products found: '.count($products).PHP_EOL;
+
+    // если на странице есть пагинация - обработать все страницы
+    $nextPage = $xpath->query('//div[@class="listing__pagination"]/ul/li[@class="active"]/following-sibling::li/a')->item(0);
+    if($nextPage) {
+      $urlParts = parse_url($url);
+      $nextPage = ($urlParts['scheme'] ?? 'http').'://'.$urlParts['host'].$nextPage->getAttribute('href');
+
+      $products = array_merge($products, $this->parseUrl($nextPage));
     }
 
     return $products;

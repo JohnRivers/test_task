@@ -21,7 +21,11 @@ class PriceModel {
 
     switch($field) {
       case 'discount': // для получения скидки вычесть из старой цены новую, в БД поле не хранится
-        return ($this->priceOld - $this->price);
+        if(!$this->priceOld) {
+          return 0; // если старая цена не указана, значит скидки на товар нет
+        } else {
+          return ($this->priceOld - $this->price);
+        }
         break;
       default:
         throw new Exception(__CLASS__.' - Property not found: '.$field);
